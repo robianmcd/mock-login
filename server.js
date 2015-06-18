@@ -64,7 +64,7 @@ app.post('/api/createAccount', function (req, res) {
                 age: chance.age(),
                 name: chance.name(),
                 favouriteColor: chance.color(),
-                profilePic: 'http://lorempixel.com/200/300/people/' + personNum,
+                profilePic: 'http://lorempixel.com/200/200/people/' + personNum,
                 email: chance.email({domain: "brainstation.io"})
             };
             personNum++;
