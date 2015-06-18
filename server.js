@@ -6,9 +6,6 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 
-var cookieParser = require('cookie-parser');
-app.use(cookieParser());
-
 var Chance = require('chance');
 // Instantiate Chance so it can be used
 var chance = new Chance();
@@ -17,25 +14,23 @@ var chance = new Chance();
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-    res.header("Access-Control-Allow-Credentials", "true");
     next();
 });
 
 var personNum = 3;
 var users = {};
-
+var sessions = {};
 
 app.post('/api/login', function (req, res) {
     if (req.body.username && typeof req.body.username === 'string' &&
         req.body.password && typeof req.body.password === 'string') {
 
-        if(users[req.body.username] && users[req.body.username].password === req.body.password) {
-            users[req.body.username].authToken = chance.natural().toString();
+        if (users[req.body.username] && users[req.body.username].password === req.body.password) {
+            var authToken = chance.natural().toString();
+            users[req.body.username].authToken = authToken;
+            sessions[authToken] = req.body.username;
 
-            res.cookie('auth', users[req.body.username].authToken, { maxAge: 900000 });
-            res.cookie('username', req.body.username, { maxAge: 900000 });
-            res.sendStatus(200);
+            res.send({authToken: authToken});
         } else {
             res.status(401).send({error: 'Invalid username or password'});
         }
@@ -46,8 +41,11 @@ app.post('/api/login', function (req, res) {
 });
 
 app.post('/api/logout', function (req, res) {
-    res.clearCookie('auth');
-    res.clearCookie('username');
+    var username = sessions[req.headers.authorization];
+    delete sessions[req.headers.authorization];
+    if (users[username]) {
+        delete users[username].authToken;
+    }
 
     res.sendStatus(200);
 });
@@ -56,7 +54,7 @@ app.post('/api/createAccount', function (req, res) {
     if (req.body.username && typeof req.body.username === 'string' &&
         req.body.password && typeof req.body.password === 'string') {
 
-        if(!users[req.body.username]) {
+        if (!users[req.body.username]) {
             users[req.body.username] = {
                 id: chance.natural(),
                 username: req.body.username,
@@ -67,7 +65,7 @@ app.post('/api/createAccount', function (req, res) {
                 favouriteColor: chance.color(),
                 profilePic: 'http://lorempixel.com/200/300/people/' + personNum,
                 email: chance.email({domain: "brainstation.io"})
-        };
+            };
             personNum++;
             res.sendStatus(200);
         } else {
@@ -80,20 +78,27 @@ app.post('/api/createAccount', function (req, res) {
 });
 
 app.get('/api/user', function (req, res) {
-    if(req.cookies.auth && req.cookies.username && users[req.cookies.username].authToken === req.cookies.auth) {
-        var user = users[req.cookies.username];
-        res.send({
-            id: user.id,
-            username: user.username,
-            age: user.age,
-            name: user.name,
-            favouriteColor: user.favouriteColor,
-            profilePic: user.profilePic,
-            email: user.email
-        });
-    } else {
-        res.status(401).send({error: 'User not logged in'});
+    var authToken = req.headers.authorization;
+    if (authToken) {
+        var username = sessions[authToken];
+
+        if(username && users[username] && users[username].authToken === authToken) {
+            var user = users[username];
+            res.send({
+                id: user.id,
+                username: user.username,
+                age: user.age,
+                name: user.name,
+                favouriteColor: user.favouriteColor,
+                profilePic: user.profilePic,
+                email: user.email
+            });
+            return;
+        }
+
     }
+
+    res.status(401).send({error: 'User not logged in'});
 });
 
 var server = app.listen(process.env.PORT || 3000, function () {
