@@ -61,11 +61,11 @@ app.post('/api/createAccount', function (req, res) {
                 username: req.body.username,
                 password: req.body.password,
                 authToken: undefined,
-                age: chance.age(),
-                name: chance.name(),
+                age: req.body.age || chance.age(),
+                name: req.body.name || chance.name(),
                 favouriteColor: chance.color(),
                 profilePic: 'http://lorempixel.com/200/200/people/' + personNum,
-                email: chance.email({domain: "brainstation.io"})
+                email: req.body.email || chance.email({domain: "brainstation.io"})
             };
             personNum++;
             res.sendStatus(200);
