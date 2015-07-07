@@ -18,7 +18,7 @@ app.use(function (req, res, next) {
     next();
 });
 
-var personNum = 3;
+var personNum = 1;
 var users = {};
 var sessions = {};
 
@@ -63,8 +63,8 @@ app.post('/api/createAccount', function (req, res) {
                 authToken: undefined,
                 age: req.body.age || chance.age(),
                 name: req.body.name || chance.name(),
-                favouriteColor: chance.color(),
-                profilePic: 'http://lorempixel.com/200/200/people/' + personNum,
+                favouriteColor: chance.color({format: 'hex'}),
+                profilePic: 'http://lorempixel.com/200/200/people/' + (personNum % 10),
                 email: req.body.email || chance.email({domain: "brainstation.io"})
             };
             personNum++;
